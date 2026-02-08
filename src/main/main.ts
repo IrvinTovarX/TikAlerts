@@ -1,7 +1,7 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import pino from 'pino';
-import { autoUpdater } from 'electron-updater';
+import updaterPkg from 'electron-updater';
 import { eventBus } from '../core/bus/eventBus.js';
 import { createDb } from '../storage/db.js';
 import { ProfilesRepo } from '../storage/profilesRepo.js';
@@ -46,6 +46,7 @@ async function bootstrap(): Promise<void> {
   eventBus.emitEvent('app.started', { platform: 'local', kind: 'test', text: 'app started' });
   logger.info('app.started emitted');
 
+  const { autoUpdater } = updaterPkg;
   autoUpdater.autoDownload = true;
   autoUpdater.checkForUpdatesAndNotify().catch((err) => logger.warn({ err }, 'auto-updater check failed'));
 }

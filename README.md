@@ -20,6 +20,14 @@ npm install
 npm run start
 ```
 
+If you previously saw:
+`Named export 'autoUpdater' not found`
+update to the latest commit and run:
+```powershell
+npm run build
+npm run start
+```
+
 ## Architecture
 - `src/main`: Electron main + preload
 - `src/renderer`: Minimal dashboard UI
