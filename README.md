@@ -11,6 +11,17 @@ npm install
 npm run start
 ```
 
+## Windows Compatibility (important)
+- Use **Node 20.x or 22.x LTS** (Node 24 is not supported in this MVP yet).
+- If you are already on Node 24, switch first (recommended with nvm-windows):
+```powershell
+nvm install 22.13.1
+nvm use 22.13.1
+npm install
+npm run start
+```
+- `better-sqlite3` is a native dependency. If you still force unsupported Node versions, npm may try local C++ compilation and fail unless Visual Studio Build Tools (Desktop development with C++) are installed.
+
 ## Architecture
 - `src/main`: Electron main + preload
 - `src/renderer`: Minimal dashboard UI
