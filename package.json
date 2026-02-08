@@ -1,0 +1,55 @@
+{
+  "name": "livealerts",
+  "version": "0.1.0",
+  "description": "LiveAlerts local-first desktop streaming alerts for OBS",
+  "main": "dist/main/main.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-assets.mjs",
+    "start": "npm run build && electron .",
+    "dev": "npm run build && electron .",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "dist": "npm run build && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.livealerts.app",
+    "productName": "LiveAlerts",
+    "asar": true,
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "CHANGE_ME",
+        "repo": "LiveAlerts"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9",
+    "express": "^4.21.2",
+    "pino": "^9.6.0",
+    "undici": "^7.4.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.13.4",
+    "@types/ws": "^8.5.14",
+    "electron": "^34.2.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20 <=24"
+  }
+}
