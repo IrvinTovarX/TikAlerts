@@ -1,22 +1,26 @@
-import type Database from 'better-sqlite3';
+import type { AppDb } from '../../storage/db.js';
 
 export class PointsStore {
-  constructor(private readonly db: Database.Database) {}
+  constructor(private readonly db: AppDb) {}
 
   addPoints(profileId: string, userId: string, points: number): void {
     const now = new Date().toISOString();
-    this.db.prepare(`
-      INSERT INTO points(profileId,userId,total,firstSeenAt,lastSeenAt)
-      VALUES(@profileId,@userId,@points,@now,@now)
-      ON CONFLICT(profileId,userId) DO UPDATE SET
-        total = total + @points,
-        lastSeenAt = @now
-    `).run({ profileId, userId, points, now });
+    const existing = this.db.data.points.find((p) => p.profileId === profileId && p.userId === userId);
+    if (existing) {
+      existing.total += points;
+      existing.lastSeenAt = now;
+    } else {
+      this.db.data.points.push({ profileId, userId, total: points, firstSeenAt: now, lastSeenAt: now });
+    }
+    this.db.save();
   }
 
   pruneInactive(days: number): number {
-    const threshold = new Date(Date.now() - days * 86_400_000).toISOString();
-    const result = this.db.prepare('DELETE FROM points WHERE lastSeenAt < ?').run(threshold);
-    return result.changes;
+    const thresholdMs = Date.now() - days * 86_400_000;
+    const before = this.db.data.points.length;
+    this.db.data.points = this.db.data.points.filter((p) => new Date(p.lastSeenAt).getTime() >= thresholdMs);
+    const removed = before - this.db.data.points.length;
+    if (removed > 0) this.db.save();
+    return removed;
   }
 }

@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type { AppDb } from './db.js';
 
 export interface Profile {
   id: string;
@@ -8,21 +8,20 @@ export interface Profile {
 }
 
 export class ProfilesRepo {
-  constructor(private readonly db: Database.Database) {}
+  constructor(private readonly db: AppDb) {}
 
   listProfiles(): Profile[] {
-    return this.db.prepare('SELECT * FROM profiles ORDER BY createdAt ASC').all() as Profile[];
+    return [...this.db.data.profiles].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
   getActiveProfile(): Profile {
-    return this.db.prepare('SELECT * FROM profiles WHERE isActive = 1 LIMIT 1').get() as Profile;
+    return this.db.data.profiles.find((p) => p.isActive === 1) ?? this.db.data.profiles[0];
   }
 
   setActiveProfile(profileId: string): void {
-    const tx = this.db.transaction(() => {
-      this.db.prepare('UPDATE profiles SET isActive = 0').run();
-      this.db.prepare('UPDATE profiles SET isActive = 1 WHERE id = ?').run(profileId);
-    });
-    tx();
+    for (const profile of this.db.data.profiles) {
+      profile.isActive = profile.id === profileId ? 1 : 0;
+    }
+    this.db.save();
   }
 }

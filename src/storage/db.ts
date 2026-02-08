@@ -1,70 +1,92 @@
-import Database from 'better-sqlite3';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import type { Profile } from './profilesRepo.js';
+import type { Screen } from './screensRepo.js';
+import type { StoredRule } from './rulesRepo.js';
 
-export function createDb(dbFile = path.resolve('data/livealerts.sqlite')): Database.Database {
+export interface PointEntry {
+  profileId: string;
+  userId: string;
+  total: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
+}
+
+interface DbShape {
+  profiles: Profile[];
+  screens: Screen[];
+  rules: StoredRule[];
+  points: PointEntry[];
+}
+
+export interface AppDb {
+  filePath: string;
+  data: DbShape;
+  save: () => void;
+}
+
+export function createDb(dbFile = path.resolve('data/livealerts.sqlite')): AppDb {
   mkdirSync(path.dirname(dbFile), { recursive: true });
-  const db = new Database(dbFile);
-  db.pragma('journal_mode = WAL');
-  migrate(db);
+
+  const data = loadOrCreate(dbFile);
+  const db: AppDb = {
+    filePath: dbFile,
+    data,
+    save: () => writeFileSync(dbFile, JSON.stringify(db.data, null, 2), 'utf8')
+  };
+
   seedDefaults(db);
+  db.save();
   return db;
 }
 
-function migrate(db: Database.Database): void {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS profiles (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      isActive INTEGER NOT NULL DEFAULT 0,
-      createdAt TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS screens (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      createdAt TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS rules (
-      id TEXT PRIMARY KEY,
-      profileId TEXT NOT NULL,
-      name TEXT NOT NULL,
-      eventName TEXT NOT NULL,
-      enabled INTEGER NOT NULL DEFAULT 1,
-      payloadJson TEXT NOT NULL,
-      targetScreenId TEXT NOT NULL DEFAULT 'screen-default',
-      createdAt TEXT NOT NULL,
-      FOREIGN KEY(profileId) REFERENCES profiles(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS points (
-      profileId TEXT NOT NULL,
-      userId TEXT NOT NULL,
-      total INTEGER NOT NULL DEFAULT 0,
-      firstSeenAt TEXT NOT NULL,
-      lastSeenAt TEXT NOT NULL,
-      PRIMARY KEY(profileId, userId)
-    );
-  `);
+function loadOrCreate(dbFile: string): DbShape {
+  try {
+    const raw = readFileSync(dbFile, 'utf8');
+    const parsed = JSON.parse(raw) as Partial<DbShape>;
+    return {
+      profiles: parsed.profiles ?? [],
+      screens: parsed.screens ?? [],
+      rules: parsed.rules ?? [],
+      points: parsed.points ?? []
+    };
+  } catch {
+    return { profiles: [], screens: [], rules: [], points: [] };
+  }
 }
 
-function seedDefaults(db: Database.Database): void {
+function seedDefaults(db: AppDb): void {
   const now = new Date().toISOString();
-  db.prepare(`INSERT OR IGNORE INTO profiles(id,name,isActive,createdAt) VALUES('profile-default','Default',1,@now)`).run({ now });
-  db.prepare(`UPDATE profiles SET isActive = CASE WHEN id='profile-default' THEN 1 ELSE isActive END`).run();
-  db.prepare(`INSERT OR IGNORE INTO screens(id,name,createdAt) VALUES('screen-default','Screen 1',@now)`).run({ now });
-  db.prepare(`
-    INSERT OR IGNORE INTO rules(id,profileId,name,eventName,enabled,payloadJson,targetScreenId,createdAt)
-    VALUES('rule-test-alert','profile-default','Test Alert Rule','test.alert',1,@payload,'screen-default',@now)
-  `).run({
-    now,
-    payload: JSON.stringify({
-      layout: 'gift_v',
-      titleTemplate: '{user.name}',
-      textTemplate: '{text}',
-      durationMs: 4500,
-      showPlatformIcon: true
-    })
-  });
+
+  if (!db.data.profiles.some((p) => p.id === 'profile-default')) {
+    db.data.profiles.push({ id: 'profile-default', name: 'Default', isActive: 1, createdAt: now });
+  }
+
+  if (!db.data.profiles.some((p) => p.isActive === 1)) {
+    const first = db.data.profiles[0];
+    if (first) first.isActive = 1;
+  }
+
+  if (!db.data.screens.some((s) => s.id === 'screen-default')) {
+    db.data.screens.push({ id: 'screen-default', name: 'Screen 1', createdAt: now });
+  }
+
+  if (!db.data.rules.some((r) => r.id === 'rule-test-alert')) {
+    db.data.rules.push({
+      id: 'rule-test-alert',
+      profileId: 'profile-default',
+      name: 'Test Alert Rule',
+      eventName: 'test.alert',
+      enabled: 1,
+      payloadJson: JSON.stringify({
+        layout: 'gift_v',
+        titleTemplate: '{user.name}',
+        textTemplate: '{text}',
+        durationMs: 4500,
+        showPlatformIcon: true
+      }),
+      targetScreenId: 'screen-default',
+      createdAt: now
+    });
+  }
 }

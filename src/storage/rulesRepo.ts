@@ -1,4 +1,4 @@
-import type Database from 'better-sqlite3';
+import type { AppDb } from './db.js';
 
 export interface StoredRule {
   id: string;
@@ -12,31 +12,26 @@ export interface StoredRule {
 }
 
 export class RulesRepo {
-  constructor(private readonly db: Database.Database) {}
+  constructor(private readonly db: AppDb) {}
 
   listRules(profileId: string): StoredRule[] {
-    return this.db.prepare('SELECT * FROM rules WHERE profileId = ? ORDER BY createdAt ASC').all(profileId) as StoredRule[];
+    return this.db.data.rules
+      .filter((r) => r.profileId === profileId)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
   listEnabledRulesForActiveProfile(): StoredRule[] {
-    return this.db.prepare(`
-      SELECT r.* FROM rules r
-      JOIN profiles p ON p.id = r.profileId
-      WHERE p.isActive = 1 AND r.enabled = 1
-      ORDER BY r.createdAt ASC
-    `).all() as StoredRule[];
+    const activeProfile = this.db.data.profiles.find((p) => p.isActive === 1);
+    if (!activeProfile) return [];
+    return this.db.data.rules
+      .filter((r) => r.profileId === activeProfile.id && r.enabled === 1)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
   upsertRule(rule: StoredRule): void {
-    this.db.prepare(`
-      INSERT INTO rules(id,profileId,name,eventName,enabled,payloadJson,targetScreenId,createdAt)
-      VALUES(@id,@profileId,@name,@eventName,@enabled,@payloadJson,@targetScreenId,@createdAt)
-      ON CONFLICT(id) DO UPDATE SET
-        name = excluded.name,
-        eventName = excluded.eventName,
-        enabled = excluded.enabled,
-        payloadJson = excluded.payloadJson,
-        targetScreenId = excluded.targetScreenId
-    `).run(rule);
+    const idx = this.db.data.rules.findIndex((r) => r.id === rule.id);
+    if (idx >= 0) this.db.data.rules[idx] = rule;
+    else this.db.data.rules.push(rule);
+    this.db.save();
   }
 }

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type Database from 'better-sqlite3';
+import type { AppDb } from './db.js';
 
 export interface Screen {
   id: string;
@@ -8,10 +8,10 @@ export interface Screen {
 }
 
 export class ScreensRepo {
-  constructor(private readonly db: Database.Database) {}
+  constructor(private readonly db: AppDb) {}
 
   listScreens(): Screen[] {
-    return this.db.prepare('SELECT * FROM screens ORDER BY createdAt ASC').all() as Screen[];
+    return [...this.db.data.screens].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   }
 
   createScreen(name: string): Screen {
@@ -20,7 +20,8 @@ export class ScreensRepo {
       name,
       createdAt: new Date().toISOString()
     };
-    this.db.prepare('INSERT INTO screens(id,name,createdAt) VALUES(@id,@name,@createdAt)').run(screen);
+    this.db.data.screens.push(screen);
+    this.db.save();
     return screen;
   }
 }

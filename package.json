@@ -9,8 +9,7 @@
     "start": "npm run build && electron .",
     "dev": "npm run build && electron .",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "dist": "npm run build && electron-builder --win",
-    "preinstall": "node scripts/check-node-version.mjs"
+    "dist": "npm run build && electron-builder --win"
   },
   "build": {
     "appId": "com.livealerts.app",
@@ -36,7 +35,6 @@
     }
   },
   "dependencies": {
-    "better-sqlite3": "^12.6.2",
     "electron-updater": "^6.3.9",
     "express": "^4.21.2",
     "pino": "^9.6.0",
@@ -44,7 +42,6 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^4.17.21",
     "@types/node": "^22.13.4",
     "@types/ws": "^8.5.14",
@@ -53,6 +50,6 @@
     "typescript": "^5.7.3"
   },
   "engines": {
-    "node": ">=20 <24"
+    "node": ">=20 <=24"
   }
 }

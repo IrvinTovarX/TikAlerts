@@ -3,7 +3,7 @@
 Local-first Windows desktop streaming alerts app built with Electron + Node.js + TypeScript.
 
 ## Node Version
-- Node.js 20+ recommended (Node 22 also works)
+- Node.js 20 to 24 supported
 
 ## Setup
 ```bash
@@ -12,15 +12,13 @@ npm run start
 ```
 
 ## Windows Compatibility (important)
-- Use **Node 20.x or 22.x LTS** (Node 24 is not supported in this MVP yet).
-- If you are already on Node 24, switch first (recommended with nvm-windows):
+- Node 24.12.0 is supported.
+- No Visual Studio C++ Build Tools are required for install anymore.
+- Run:
 ```powershell
-nvm install 22.13.1
-nvm use 22.13.1
 npm install
 npm run start
 ```
-- `better-sqlite3` is a native dependency. If you still force unsupported Node versions, npm may try local C++ compilation and fail unless Visual Studio Build Tools (Desktop development with C++) are installed.
 
 ## Architecture
 - `src/main`: Electron main + preload
@@ -77,7 +75,7 @@ How to test:
 
 ## Milestone D — SQLite Storage + Screens Persistence
 Implemented:
-- DB file: `./data/livealerts.sqlite`.
+- DB file: `./data/livealerts.sqlite` (JSON-backed local store for Node 24 compatibility).
 - Migrations for `profiles`, `screens`, `rules`, and `points`.
 - Seeds default profile (`profile-default`) and default screen (`screen-default`).
 - Startup logs show loaded counts and default screen URL.
